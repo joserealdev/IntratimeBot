@@ -9,10 +9,17 @@ const PARADA = 2;
 const VUELTA = 3;
 const bot = new TelegramBot(TG_TOKEN, { polling: true });
 
+const changesAvailable = {
+  0: [1, 2],
+  1: [0],
+  2: [3],
+  3: [1, 2]
+};
+
 bot.onText(/\/obtenerestado/, (msg, match) => {
   if (msg.chat.id !== MY_ID) return;
   obtenerEstado().then(res => {
-    sendMeMessage(res);
+    sendMeMessage(res.mensaje);
   });
 });
 
@@ -23,53 +30,117 @@ bot.onText(/\/start/, (msg, match) => {
 
 bot.onText(/\/entrar/, (msg, match) => {
   if (msg.chat.id !== MY_ID) return;
-  registroHorario(ENTRADAID).then(res => {
-    sendMeMessage(res);
+  obtenerEstado().then(res => {
+    if (changesAvailable[res.code].indexOf(ENTRADAID) !== -1) {
+      registroHorario(ENTRADAID).then(res => {
+        sendMeMessage(res);
+      });
+    } else {
+      sendMeMessage(
+        `No puedes ejecutar esta acción. Tu estado actual es ${res.mensaje}`
+      );
+    }
   });
 });
 
 bot.onText(/\/salir/, (msg, match) => {
   if (msg.chat.id !== MY_ID) return;
-  registroHorario(SALIDAID).then(res => {
-    sendMeMessage(res);
+  obtenerEstado().then(res => {
+    if (changesAvailable[res.code].indexOf(SALIDAID) !== -1) {
+      registroHorario(SALIDAID).then(res => {
+        sendMeMessage(res);
+      });
+    } else {
+      sendMeMessage(
+        `No puedes ejecutar esta acción. Tu estado actual es ${res.mensaje}`
+      );
+    }
   });
 });
 
 bot.onText(/\/pausa/, (msg, match) => {
   if (msg.chat.id !== MY_ID) return;
-  registroHorario(PARADA).then(res => {
-    sendMeMessage(res);
+  obtenerEstado().then(res => {
+    if (changesAvailable[res.code].indexOf(PARADA) !== -1) {
+      registroHorario(PARADA).then(res => {
+        sendMeMessage(res);
+      });
+    } else {
+      sendMeMessage(
+        `No puedes ejecutar esta acción. Tu estado actual es ${res.mensaje}`
+      );
+    }
   });
 });
 
 bot.onText(/\/vuelta/, (msg, match) => {
   if (msg.chat.id !== MY_ID) return;
-  registroHorario(VUELTA).then(res => {
-    sendMeMessage(res);
+  obtenerEstado().then(res => {
+    if (changesAvailable[res.code].indexOf(VUELTA) !== -1) {
+      registroHorario(VUELTA).then(res => {
+        sendMeMessage(res);
+      });
+    } else {
+      sendMeMessage(
+        `No puedes ejecutar esta acción. Tu estado actual es ${res.mensaje}`
+      );
+    }
   });
 });
 
 cron.schedule("0 8 * * 1-5", () => {
-  registroHorario(ENTRADAID).then(res => {
-    sendMeMessage(res);
+  obtenerEstado().then(res => {
+    if (changesAvailable[res.code].indexOf(ENTRADAID) !== -1) {
+      registroHorario(ENTRADAID).then(res => {
+        sendMeMessage(res);
+      });
+    } else {
+      sendMeMessage(
+        `No puedes ejecutar esta acción. Tu estado actual es ${res.mensaje}`
+      );
+    }
   });
 });
 
 cron.schedule("0 17 * * 1-5", () => {
-  registroHorario(SALIDAID).then(res => {
-    sendMeMessage(res);
+  obtenerEstado().then(res => {
+    if (changesAvailable[res.code].indexOf(SALIDAID) !== -1) {
+      registroHorario(SALIDAID).then(res => {
+        sendMeMessage(res);
+      });
+    } else {
+      sendMeMessage(
+        `No puedes ejecutar esta acción. Tu estado actual es ${res.mensaje}`
+      );
+    }
   });
 });
 
 cron.schedule("0 13 * * 1-5", () => {
-  registroHorario(PARADA).then(res => {
-    sendMeMessage(res);
+  obtenerEstado().then(res => {
+    if (changesAvailable[res.code].indexOf(PARADA) !== -1) {
+      registroHorario(PARADA).then(res => {
+        sendMeMessage(res);
+      });
+    } else {
+      sendMeMessage(
+        `No puedes ejecutar esta acción. Tu estado actual es ${res.mensaje}`
+      );
+    }
   });
 });
 
 cron.schedule("0 14 * * 1-5", () => {
-  registroHorario(VUELTA).then(res => {
-    sendMeMessage(res);
+  obtenerEstado().then(res => {
+    if (changesAvailable[res.code].indexOf(VUELTA) !== -1) {
+      registroHorario(VUELTA).then(res => {
+        sendMeMessage(res);
+      });
+    } else {
+      sendMeMessage(
+        `No puedes ejecutar esta acción. Tu estado actual es ${res.mensaje}`
+      );
+    }
   });
 });
 
@@ -78,12 +149,6 @@ const sendMeMessage = text => {
 };
 
 const registroHorario = action => {
-  // const changesAvailable = {
-  //   0: [1, 2],
-  //   1: [0],
-  //   2: [3],
-  //   3: [1, 2]
-  // }
   return new Promise((resolve, reject) => {
     const today = new Date();
     const dd = String(today.getDate()).padStart(2, "0");
@@ -175,11 +240,11 @@ const obtenerEstado = () => {
             statusdata && statusdata.INOUT_TYPE
           ] ||
             "fuera"} del trabajo. Código de la respuesta: ${codigorespuesta}.`;
-          resolve(mensaje);
+          resolve({ mensaje, code: parseInt(statusdata.INOUT_TYPE) });
         } else {
           const { message } = JSON.parse(body);
           mensaje = `Status code: ${codigorespuesta}\nMensaje de error: ${message}\nError: ${error}`;
-          reject(mensaje);
+          reject({ mensaje });
         }
       }
     );
