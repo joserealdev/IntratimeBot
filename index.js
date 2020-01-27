@@ -16,145 +16,13 @@ const changesAvailable = {
   3: [1, 2]
 };
 
-bot.onText(/\/obtenerestado/, (msg, match) => {
-  if (msg.chat.id !== MY_ID) return;
-  obtenerEstado().then(res => {
-    sendMeMessage(res.mensaje);
-  });
-});
-
-bot.onText(/\/start/, (msg, match) => {
-  const chatId = msg.chat.id;
-  bot.sendMessage(chatId, "Este bot no va a funcionar");
-});
-
-bot.onText(/\/entrar/, (msg, match) => {
-  if (msg.chat.id !== MY_ID) return;
-  obtenerEstado().then(res => {
-    if (changesAvailable[res.code].indexOf(ENTRADAID) !== -1) {
-      registroHorario(ENTRADAID).then(res => {
-        sendMeMessage(res);
-      });
-    } else {
-      sendMeMessage(
-        `No puedes ejecutar esta acción. Tu estado actual es ${res.mensaje}`
-      );
-    }
-  });
-});
-
-bot.onText(/\/salir/, (msg, match) => {
-  if (msg.chat.id !== MY_ID) return;
-  obtenerEstado().then(res => {
-    if (changesAvailable[res.code].indexOf(SALIDAID) !== -1) {
-      registroHorario(SALIDAID).then(res => {
-        sendMeMessage(res);
-      });
-    } else {
-      sendMeMessage(
-        `No puedes ejecutar esta acción. Tu estado actual es ${res.mensaje}`
-      );
-    }
-  });
-});
-
-bot.onText(/\/pausa/, (msg, match) => {
-  if (msg.chat.id !== MY_ID) return;
-  obtenerEstado().then(res => {
-    if (changesAvailable[res.code].indexOf(PARADA) !== -1) {
-      registroHorario(PARADA).then(res => {
-        sendMeMessage(res);
-      });
-    } else {
-      sendMeMessage(
-        `No puedes ejecutar esta acción. Tu estado actual es ${res.mensaje}`
-      );
-    }
-  });
-});
-
-bot.onText(/\/vuelta/, (msg, match) => {
-  if (msg.chat.id !== MY_ID) return;
-  obtenerEstado().then(res => {
-    if (changesAvailable[res.code].indexOf(VUELTA) !== -1) {
-      registroHorario(VUELTA).then(res => {
-        sendMeMessage(res);
-      });
-    } else {
-      sendMeMessage(
-        `No puedes ejecutar esta acción. Tu estado actual es ${res.mensaje}`
-      );
-    }
-  });
-});
-
-cron.schedule("0 8 * * 1-5", () => {
-  obtenerEstado().then(res => {
-    if (changesAvailable[res.code].indexOf(ENTRADAID) !== -1) {
-      registroHorario(ENTRADAID).then(res => {
-        sendMeMessage(res);
-      });
-    } else {
-      sendMeMessage(
-        `No puedes ejecutar esta acción. Tu estado actual es ${res.mensaje}`
-      );
-    }
-  });
-});
-
-cron.schedule("0 17 * * 1-5", () => {
-  obtenerEstado().then(res => {
-    if (changesAvailable[res.code].indexOf(SALIDAID) !== -1) {
-      registroHorario(SALIDAID).then(res => {
-        sendMeMessage(res);
-      });
-    } else {
-      sendMeMessage(
-        `No puedes ejecutar esta acción. Tu estado actual es ${res.mensaje}`
-      );
-    }
-  });
-});
-
-cron.schedule("0 13 * * 1-5", () => {
-  obtenerEstado().then(res => {
-    if (changesAvailable[res.code].indexOf(PARADA) !== -1) {
-      registroHorario(PARADA).then(res => {
-        sendMeMessage(res);
-      });
-    } else {
-      sendMeMessage(
-        `No puedes ejecutar esta acción. Tu estado actual es ${res.mensaje}`
-      );
-    }
-  });
-});
-
-cron.schedule("0 14 * * 1-5", () => {
-  obtenerEstado().then(res => {
-    if (changesAvailable[res.code].indexOf(VUELTA) !== -1) {
-      registroHorario(VUELTA).then(res => {
-        sendMeMessage(res);
-      });
-    } else {
-      sendMeMessage(
-        `No puedes ejecutar esta acción. Tu estado actual es ${res.mensaje}`
-      );
-    }
-  });
-});
-
-const sendMeMessage = text => {
-  bot.sendMessage(MY_ID, text);
-};
-
 const registroHorario = action => {
   return new Promise((resolve, reject) => {
     const today = new Date();
     const dd = String(today.getDate()).padStart(2, "0");
     const mm = String(today.getMonth() + 1).padStart(2, "0");
     const year = today.getFullYear();
-    const date = year.toString() + "-" + mm + "-" + dd;
+    const date = `${year.toString()}-${mm}-${dd}`;
     const hours = new Date()
       .toTimeString()
       .replace(/.*(\d{2}:\d{2}:\d{2}).*/, "$1");
@@ -196,9 +64,13 @@ const registroHorario = action => {
           mensaje = `Has picado la ${accion[action]}. Código de la respuesta: ${codigorespuesta}.`;
           resolve(mensaje);
         } else {
-          const { message } = JSON.parse(body);
-          mensaje = `Status code: ${codigorespuesta}\nMensaje de error: ${message}\nError: ${error}`;
-          reject(mensaje);
+          try {
+            const { message } = JSON.parse(body);
+            mensaje = `Status code: ${codigorespuesta}\nMensaje de error: ${message}\nError: ${error}`;
+            reject(mensaje);
+          } catch (error) {
+            reject(error);
+          }
         }
       }
     );
@@ -211,7 +83,7 @@ const obtenerEstado = () => {
     const dd = String(today.getDate()).padStart(2, "0");
     const mm = String(today.getMonth() + 1).padStart(2, "0");
     const year = today.getFullYear();
-    const date = year.toString() + "-" + mm + "-" + dd;
+    const date = `${year.toString()}-${mm}-${dd}`;
 
     request(
       {
@@ -227,7 +99,7 @@ const obtenerEstado = () => {
           maxResult: "1",
           from: `${date} 00:00:00`,
           to: `${date} 24:00:00`,
-          type: "0,1"
+          type: "0,1,2,3"
         }
       },
       (error, response, body) => {
@@ -240,13 +112,149 @@ const obtenerEstado = () => {
             statusdata && statusdata.INOUT_TYPE
           ] ||
             "fuera"} del trabajo. Código de la respuesta: ${codigorespuesta}.`;
-          resolve({ mensaje, code: parseInt(statusdata.INOUT_TYPE) });
+          resolve({ mensaje, code: parseInt(statusdata.INOUT_TYPE, 10) });
         } else {
-          const { message } = JSON.parse(body);
-          mensaje = `Status code: ${codigorespuesta}\nMensaje de error: ${message}\nError: ${error}`;
-          reject({ mensaje });
+          try {
+            const { message } = JSON.parse(body);
+            mensaje = `Status code: ${codigorespuesta}\nMensaje de error: ${message}\nError: ${error}`;
+            reject(mensaje);
+          } catch (error) {
+            reject(error);
+          }
         }
       }
     );
   });
+};
+
+const picarEntrada = () => {
+  obtenerEstado()
+    .then(res => {
+      if (changesAvailable[res.code].indexOf(ENTRADAID) !== -1) {
+        registroHorario(ENTRADAID)
+          .then(res => {
+            sendMeMessage(res);
+          })
+          .catch(error => {
+            sendMeMessage(error);
+          });
+      } else {
+        sendMeMessage(`No puedes ejecutar esta acción. ${res.mensaje}`);
+      }
+    })
+    .catch(error => {
+      sendMeMessage(error);
+    });
+};
+
+const picarSalida = () => {
+  obtenerEstado()
+    .then(res => {
+      if (changesAvailable[res.code].indexOf(SALIDAID) !== -1) {
+        registroHorario(SALIDAID)
+          .then(res => {
+            sendMeMessage(res);
+          })
+          .catch(error => {
+            sendMeMessage(error);
+          });
+      } else {
+        sendMeMessage(`No puedes ejecutar esta acción. ${res.mensaje}`);
+      }
+    })
+    .catch(error => {
+      sendMeMessage(error);
+    });
+};
+
+const picarParada = () => {
+  obtenerEstado()
+    .then(res => {
+      if (changesAvailable[res.code].indexOf(PARADA) !== -1) {
+        registroHorario(PARADA)
+          .then(res => {
+            sendMeMessage(res);
+          })
+          .catch(error => {
+            sendMeMessage(error);
+          });
+      } else {
+        sendMeMessage(`No puedes ejecutar esta acción. ${res.mensaje}`);
+      }
+    })
+    .catch(error => {
+      sendMeMessage(error);
+    });
+};
+
+const picarVuelta = () => {
+  obtenerEstado()
+    .then(res => {
+      if (changesAvailable[res.code].indexOf(VUELTA) !== -1) {
+        registroHorario(VUELTA)
+          .then(res => {
+            sendMeMessage(res);
+          })
+          .catch(error => {
+            sendMeMessage(error);
+          });
+      } else {
+        sendMeMessage(`No puedes ejecutar esta acción. ${res.mensaje}`);
+      }
+    })
+    .catch(error => {
+      sendMeMessage(error);
+    });
+};
+
+bot.onText(/\/obtenerestado/, (msg, match) => {
+  if (msg.chat.id !== MY_ID) return;
+  obtenerEstado().then(res => {
+    sendMeMessage(res.mensaje);
+  });
+});
+
+bot.onText(/\/start/, (msg, match) => {
+  const chatId = msg.chat.id;
+  bot.sendMessage(chatId, "Este bot no va a funcionar");
+});
+
+bot.onText(/\/entrar/, (msg, match) => {
+  if (msg.chat.id !== MY_ID) return;
+  picarEntrada();
+});
+
+bot.onText(/\/salir/, (msg, match) => {
+  if (msg.chat.id !== MY_ID) return;
+  picarSalida();
+});
+
+bot.onText(/\/pausa/, (msg, match) => {
+  if (msg.chat.id !== MY_ID) return;
+  picarParada();
+});
+
+bot.onText(/\/vuelta/, (msg, match) => {
+  if (msg.chat.id !== MY_ID) return;
+  picarVuelta();
+});
+
+cron.schedule("0 8 * * 1-5", () => {
+  picarEntrada();
+});
+
+cron.schedule("0 17 * * 1-5", () => {
+  picarSalida();
+});
+
+cron.schedule("0 13 * * 1-5", () => {
+  picarParada();
+});
+
+cron.schedule("0 14 * * 1-5", () => {
+  picarVuelta();
+});
+
+const sendMeMessage = text => {
+  bot.sendMessage(MY_ID, text);
 };
