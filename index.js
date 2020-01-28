@@ -1,4 +1,5 @@
 const request = require("request");
+const get = require("lodash.get");
 const fs = require("fs");
 const TelegramBot = require("node-telegram-bot-api");
 const cron = require("node-cron");
@@ -50,7 +51,7 @@ const registroHorario = action => {
           user_gps_coordinates: "40.437584,-3.625048",
           user_project: "",
           user_file: "",
-          user_expense: "2384",
+          user_expense: "12632",
           inout_device_uid: "",
           user_use_server_time: "true",
           expense_amount: "0"
@@ -77,6 +78,16 @@ const registroHorario = action => {
   });
 };
 
+const getDaysAgo = days => {
+  const date = new Date();
+  const last = new Date(date.getTime() - days * 24 * 60 * 60 * 1000);
+  const day = last.getDate();
+  const month = last.getMonth() + 1;
+  const year = last.getFullYear();
+
+  return `${year}-${month}-${day}`;
+};
+
 const obtenerEstado = () => {
   return new Promise((resolve, reject) => {
     const today = new Date();
@@ -84,6 +95,7 @@ const obtenerEstado = () => {
     const mm = String(today.getMonth() + 1).padStart(2, "0");
     const year = today.getFullYear();
     const date = `${year.toString()}-${mm}-${dd}`;
+    const fromDate = getDaysAgo(7);
 
     request(
       {
@@ -97,7 +109,7 @@ const obtenerEstado = () => {
         qs: {
           last: "true",
           maxResult: "1",
-          from: `${date} 00:00:00`,
+          from: `${fromDate} 00:00:00`,
           to: `${date} 24:00:00`,
           type: "0,1,2,3"
         }
@@ -112,7 +124,10 @@ const obtenerEstado = () => {
             statusdata && statusdata.INOUT_TYPE
           ] ||
             "fuera"} del trabajo. Código de la respuesta: ${codigorespuesta}.`;
-          resolve({ mensaje, code: parseInt(statusdata.INOUT_TYPE, 10) });
+          resolve({
+            mensaje,
+            code: parseInt(get(statusdata, "INOUT_TYPE", 1), 10)
+          });
         } else {
           try {
             const { message } = JSON.parse(body);
