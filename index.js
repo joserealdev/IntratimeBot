@@ -142,11 +142,11 @@ const obtenerEstado = () => {
   });
 };
 
-const picarEntrada = () => {
+const picarAccion = (accion) => {
   obtenerEstado()
     .then(res => {
-      if (changesAvailable[res.code].indexOf(ENTRADAID) !== -1) {
-        registroHorario(ENTRADAID)
+      if (changesAvailable[res.code].indexOf(accion) !== -1) {
+        registroHorario(accion)
           .then(res => {
             sendMeMessage(res);
           })
@@ -162,65 +162,62 @@ const picarEntrada = () => {
     });
 };
 
-const picarSalida = () => {
-  obtenerEstado()
-    .then(res => {
-      if (changesAvailable[res.code].indexOf(SALIDAID) !== -1) {
-        registroHorario(SALIDAID)
-          .then(res => {
-            sendMeMessage(res);
-          })
-          .catch(error => {
-            sendMeMessage(error);
-          });
-      } else {
-        sendMeMessage(`No puedes ejecutar esta acción. ${res.mensaje}`);
-      }
-    })
-    .catch(error => {
-      sendMeMessage(error);
-    });
-};
+const formatDate = (date) => {
+  const d = new Date(date);
+  let month = `${d.getMonth() + 1}`;
+  let day = `${d.getDate()}`;
+  const year = d.getFullYear();
 
-const picarParada = () => {
-  obtenerEstado()
-    .then(res => {
-      if (changesAvailable[res.code].indexOf(PARADA) !== -1) {
-        registroHorario(PARADA)
-          .then(res => {
-            sendMeMessage(res);
-          })
-          .catch(error => {
-            sendMeMessage(error);
-          });
-      } else {
-        sendMeMessage(`No puedes ejecutar esta acción. ${res.mensaje}`);
-      }
-    })
-    .catch(error => {
-      sendMeMessage(error);
-    });
-};
+  if (month.length < 2) { month = `0${month}`; }
+  if (day.length < 2) { day = `0${day}`; }
 
-const picarVuelta = () => {
-  obtenerEstado()
-    .then(res => {
-      if (changesAvailable[res.code].indexOf(VUELTA) !== -1) {
-        registroHorario(VUELTA)
-          .then(res => {
-            sendMeMessage(res);
-          })
-          .catch(error => {
-            sendMeMessage(error);
-          });
-      } else {
-        sendMeMessage(`No puedes ejecutar esta acción. ${res.mensaje}`);
-      }
-    })
-    .catch(error => {
-      sendMeMessage(error);
-    });
-};
+  return [year, month, day].join('-');
+}
+
+const isValidDate = (dateString) => {
+  var regEx = /^\d{4}-\d{2}-\d{2}$/;
+  if(!dateString.match(regEx)) return false;  // Invalid format
+  var d = new Date(dateString);
+  var dNum = d.getTime();
+  if(!dNum && dNum !== 0) return false; // NaN value, Invalid date
+  return d.toISOString().slice(0,10) === dateString;
+}
+
+const addHoliday = (date) => {
+  const data = JSON.parse(fs.readFileSync("./holidays.json", "utf8"));
+  const holidays = get(data, 'dias', []);
+  let check = new Date();
+  if (date && isValidDate(date)) {
+    check = date
+  } else if (!date) {
+    check.setDate(check.getDate() + 1);
+  } else {
+    return 'Fecha invalida'
+  }
+
+  const tomorrow = formatDate(check);
+
+  if (holidays.indexOf(tomorrow) === -1) {
+    holidays.push(tomorrow)
+    const file = {
+      dias: holidays
+    }
+    try {
+      fs.writeFileSync("./holidays.json", JSON.stringify(file, null, 2));
+      return `Se ha insertado con exito la fecha ${tomorrow}`;
+    } catch (e) {
+      return "Error al insertar: " + e;
+    }
+  } else {
+    return 'Esta fecha ya se encuentra en el fichero'
+  }
+}
+
+bot.onText(/\/addholiday (.*)/, (msg, match) => {
+  if (msg.chat.id !== MY_ID) return;
+  const respuesta = match[1] ? addHoliday(match[1]) : addHoliday();
+  sendMeMessage(respuesta);
+});
 
 bot.onText(/\/obtenerestado/, (msg, match) => {
   if (msg.chat.id !== MY_ID) return;
@@ -236,38 +233,38 @@ bot.onText(/\/start/, (msg, match) => {
 
 bot.onText(/\/entrar/, (msg, match) => {
   if (msg.chat.id !== MY_ID) return;
-  picarEntrada();
+  picarAccion(ENTRADAID);
 });
 
 bot.onText(/\/salir/, (msg, match) => {
   if (msg.chat.id !== MY_ID) return;
-  picarSalida();
+  picarAccion(SALIDAID);
 });
 
 bot.onText(/\/pausa/, (msg, match) => {
   if (msg.chat.id !== MY_ID) return;
-  picarParada();
+  picarAccion(PARADA);
 });
 
 bot.onText(/\/vuelta/, (msg, match) => {
   if (msg.chat.id !== MY_ID) return;
-  picarVuelta();
+  picarAccion(VUELTA);
 });
 
 cron.schedule("0 8 * * 1-5", () => {
-  picarEntrada();
+  picarAccion(ENTRADAID);
 });
 
 cron.schedule("0 17 * * 1-5", () => {
-  picarSalida();
+  picarAccion(SALIDAID);
 });
 
 cron.schedule("0 13 * * 1-5", () => {
-  picarParada();
+  picarAccion(PARADA);
 });
 
 cron.schedule("0 14 * * 1-5", () => {
-  picarVuelta();
+  picarAccion(VUELTA);
 });
 
 const sendMeMessage = text => {
