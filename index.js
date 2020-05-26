@@ -33,48 +33,48 @@ const registroHorario = action => {
 
     if (SKIPREGISTERDATES.indexOf(date) !== -1) {
       resolve("Vacaciones!");
-    }
-
-    request(
-      {
-        method: "POST",
-        uri: "https://newapi.intratime.es/api/user/clocking",
-        headers: {
-          Accept: "application/vnd.apiintratime.v1+json",
-          "Content-type":
-            "multipart/form-data; application/x-www-form-urlencoded; charset:utf8",
-          token: USER_TOKEN
+    } else {
+      request(
+        {
+          method: "POST",
+          uri: "https://newapi.intratime.es/api/user/clocking",
+          headers: {
+            Accept: "application/vnd.apiintratime.v1+json",
+            "Content-type":
+              "multipart/form-data; application/x-www-form-urlencoded; charset:utf8",
+            token: USER_TOKEN
+          },
+          formData: {
+            user_action: action,
+            user_timestamp: `${date} ${hours}`,
+            user_gps_coordinates: "40.437584,-3.625048",
+            user_project: "",
+            user_file: "",
+            user_expense: "12632",
+            inout_device_uid: "",
+            user_use_server_time: "true",
+            expense_amount: "0"
+          }
         },
-        formData: {
-          user_action: action,
-          user_timestamp: `${date} ${hours}`,
-          user_gps_coordinates: "40.437584,-3.625048",
-          user_project: "",
-          user_file: "",
-          user_expense: "12632",
-          inout_device_uid: "",
-          user_use_server_time: "true",
-          expense_amount: "0"
-        }
-      },
-      (error, response, body) => {
-        const codigorespuesta = response && response.statusCode;
-        let mensaje = "";
-        if (codigorespuesta === 201) {
-          const accion = ["entrada", "salida", "parada", "vuelta de la parada"];
-          mensaje = `Has picado la ${accion[action]}. Código de la respuesta: ${codigorespuesta}.`;
-          resolve(mensaje);
-        } else {
-          try {
-            const { message } = JSON.parse(body);
-            mensaje = `Status code: ${codigorespuesta}\nMensaje de error: ${message}\nError: ${error}`;
-            reject(mensaje);
-          } catch (error) {
-            reject(error);
+        (error, response, body) => {
+          const codigorespuesta = response && response.statusCode;
+          let mensaje = "";
+          if (codigorespuesta === 201) {
+            const accion = ["entrada", "salida", "parada", "vuelta de la parada"];
+            mensaje = `Has picado la ${accion[action]}. Código de la respuesta: ${codigorespuesta}.`;
+            resolve(mensaje);
+          } else {
+            try {
+              const { message } = JSON.parse(body);
+              mensaje = `Status code: ${codigorespuesta}\nMensaje de error: ${message}\nError: ${error}`;
+              reject(mensaje);
+            } catch (error) {
+              reject(error);
+            }
           }
         }
-      }
-    );
+      );
+    }
   });
 };
 
