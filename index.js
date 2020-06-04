@@ -128,6 +128,7 @@ const obtenerEstado = () => {
 };
 
 const picarAccion = (accion) => {
+  const holidaysdata = fs.readFileSync("./holidays.json", "utf8");
   const SKIPREGISTERDATES = JSON.parse(holidaysdata).dias;
   const date = getDate();
   if (SKIPREGISTERDATES.indexOf(date) !== -1) {
